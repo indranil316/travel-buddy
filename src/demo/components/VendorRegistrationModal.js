@@ -16,7 +16,7 @@ import "./VendorRegistrationModal.css";
 const { Step } = Steps;
 
 const cardData = [
-  { icon: cardIcon, text: "Accomodation" },
+  { icon: cardIcon, text: "Accommodation" },
   { icon: cardIcon, text: "Transport" },
   { icon: cardIcon, text: "Recreation" },
   { icon: cardIcon, text: "Adventure" },
@@ -24,7 +24,7 @@ const cardData = [
 ];
 
 const serviceSubcategories = {
-  Accomodation: [
+  Accommodation: [
     { icon: cardIcon, text: "Hotel" },
     { icon: cardIcon, text: "Villa" },
     { icon: cardIcon, text: "Resort" },
@@ -112,27 +112,6 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
     }));
   };
 
-  const { Dragger } = Upload;
-  const props = {
-    name: "file",
-    multiple: true,
-    action: "https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload",
-    onChange(info) {
-      const { status } = info.file;
-      if (status !== "uploading") {
-        console.log(info.file, info.fileList);
-      }
-      if (status === "done") {
-        message.success(`${info.file.name} file uploaded successfully.`);
-      } else if (status === "error") {
-        message.error(`${info.file.name} file upload failed.`);
-      }
-    },
-    onDrop(e) {
-      console.log("Dropped files", e.dataTransfer.files);
-    },
-  };
-
   const validateStep = () => {
     if (current === 0) {
       const { name, email, number, address } = formData;
@@ -175,14 +154,34 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
 
   const register = async () => {
     if (validateStep()) {
-      const payload = {
-        ...formData,
-        selectedServices,
-        selectedSubcategories,
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("number", formData.number);
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("licenceName", formData.licenceName);
+      formDataToSend.append("licenceNumber", formData.licenceNumber);
+      formDataToSend.append("file", formData.file);
+
+      selectedServices.forEach((service) =>
+        formDataToSend.append("selectedServices", service)
+      );
+
+      formDataToSend.append(
+        "selectedSubcategories",
+        JSON.stringify(selectedSubcategories)
+      );
 
       try {
-        const response = await axios.post("API_ENDPOINT", payload);
+        const response = await axios.post(
+          "/api/auth/vendor/register",
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
         message.success("Vendor registered successfully!");
         onClose();
       } catch (error) {
@@ -190,6 +189,33 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
         console.error("Registration error:", error);
       }
     }
+  };
+
+  const { Dragger } = Upload;
+  const props = {
+    name: "file",
+    multiple: false,
+    beforeUpload: (file) => {
+      setFormData({
+        ...formData,
+        file,
+      });
+      return false; // Prevent upload
+    },
+    onChange(info) {
+      const { status } = info.file;
+      if (status !== "uploading") {
+        console.log(info.file, info.fileList);
+      }
+      if (status === "done") {
+        message.success(`${info.file.name} file uploaded successfully.`);
+      } else if (status === "error") {
+        message.error(`${info.file.name} file upload failed.`);
+      }
+    },
+    onDrop(e) {
+      console.log("Dropped files", e.dataTransfer.files);
+    },
   };
 
   const steps = [
@@ -251,17 +277,17 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
     {
       title: "Step 2",
       content: (
-        <div className="form-div">
+        <div className="v-register-form-div">
           <h3>Vendor Registration Form - Step 2</h3>
-          <p>Select the service(s) you're providing:</p>
-          <div className="cards-container">
-            {cardData.map((data, index) => (
+          <p>Select the services you offer:</p>
+          <div className="custom-card-grid">
+            {cardData.map((card) => (
               <ClickableCard
-                key={index}
-                icon={data.icon}
-                text={data.text}
+                key={card.text}
+                icon={card.icon}
+                text={card.text}
                 onClick={handleCardClick}
-                isSelected={selectedServices.includes(data.text)}
+                isSelected={selectedServices.includes(card.text)}
               />
             ))}
           </div>
@@ -271,24 +297,26 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
     {
       title: "Step 3",
       content: (
-        <div className="form-div">
+        <div className="v-register-form-div">
           <h3>Vendor Registration Form - Step 3</h3>
-          {selectedServices.map((service, index) => (
-            <div key={index}>
-              <p>Select the type of {service} service:</p>
-              <div className="cards-container">
-                {serviceSubcategories[service]?.map((data, subIndex) => (
+          <p>Select subcategories for each service:</p>
+          {selectedServices.map((service) => (
+            <div key={service}>
+              <h4>{service}</h4>
+              <div className="custom-card-grid">
+                {serviceSubcategories[service]?.map((sub) => (
                   <ClickableCard
-                    key={subIndex}
-                    icon={data.icon}
-                    text={data.text}
-                    onClick={() => handleSubcategoryClick(service, data.text)}
+                    key={sub.text}
+                    icon={sub.icon}
+                    text={sub.text}
+                    onClick={() => handleSubcategoryClick(service, sub.text)}
                     isSelected={selectedSubcategories[service]?.includes(
-                      data.text
+                      sub.text
                     )}
                   />
                 ))}
               </div>
+              <Divider />
             </div>
           ))}
         </div>
@@ -297,32 +325,34 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
     {
       title: "Step 4",
       content: (
-        <div className="form-div">
+        <div className="v-register-form-div">
           <h3>Vendor Registration Form - Step 4</h3>
-          <p>Licence Details</p>
+          <p>Upload Documents:</p>
           <form>
             <div className="input-div">
-              <label>Licence Bearer's Name</label>
+              <label>Business Licence Name</label>
               <input
                 name="licenceName"
                 type="text"
-                placeholder="Enter your name"
+                placeholder="Enter your business licence name"
                 value={formData.licenceName}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="input-div">
-              <label>Licence Number</label>
+              <label>Business Licence Number</label>
               <input
                 name="licenceNumber"
                 type="text"
-                placeholder="Enter your licence number"
+                placeholder="Enter your business licence number"
                 value={formData.licenceNumber}
                 onChange={handleChange}
                 required
               />
             </div>
+          </form>
+          <div className="upload-div">
             <Dragger {...props}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
@@ -331,46 +361,58 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
                 Click or drag file to this area to upload
               </p>
               <p className="ant-upload-hint">
-                Support for a single or bulk upload. Strictly prohibited from
-                uploading company data or other banned files.
+                Support for a single upload. Strictly prohibit from uploading
+                company data or other band files
               </p>
             </Dragger>
-          </form>
+          </div>
         </div>
       ),
     },
   ];
 
   return (
-    <Modal visible={isVisible} onCancel={onClose} footer={null} width={700}>
-      <div className="title-container">
-        <img className="main-icon" src={iconImage} alt="Icon" />
-        <h2 className="main-title">TRAVEL BUDDY</h2>
-      </div>
-      <Divider />
-      <Steps current={current} style={{ marginBottom: 20 }}>
-        {steps.map((step, index) => (
-          <Step key={index} title={step.title} />
-        ))}
-      </Steps>
-
-      <div className="steps-content">{steps[current].content}</div>
-
-      <div className="steps-action">
-        {current > 0 && <AntButton onClick={() => prev()}>Previous</AntButton>}
-        {current < steps.length - 1 ? (
-          <AntButton type="primary" onClick={next} style={{ marginLeft: 8 }}>
-            Next
-          </AntButton>
-        ) : (
-          <AntButton
-            type="primary"
-            onClick={register}
-            style={{ marginLeft: 8 }}
-          >
-            Register
-          </AntButton>
-        )}
+    <Modal
+      title={
+        <span>
+          <img
+            src={iconImage}
+            alt="Icon"
+            style={{ width: "30px", height: "30px", marginRight: "10px" }}
+          />
+          Vendor Registration
+        </span>
+      }
+      open={isVisible}
+      onCancel={onClose}
+      footer={null}
+      width={800}
+      className="custom-modal"
+    >
+      <div className="steps-container">
+        <Steps current={current}>
+          {steps.map((item) => (
+            <Step key={item.title} title={item.title} />
+          ))}
+        </Steps>
+        <div className="steps-content">{steps[current].content}</div>
+        <div className="steps-action">
+          {current > 0 && (
+            <AntButton style={{ margin: "0 8px" }} onClick={() => prev()}>
+              Previous
+            </AntButton>
+          )}
+          {current < steps.length - 1 && (
+            <AntButton type="primary" onClick={() => next()}>
+              Next
+            </AntButton>
+          )}
+          {current === steps.length - 1 && (
+            <AntButton type="primary" onClick={register}>
+              Register
+            </AntButton>
+          )}
+        </div>
       </div>
     </Modal>
   );
