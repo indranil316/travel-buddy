@@ -6,19 +6,45 @@ import fbIcon from "../assets/fbIcon.png";
 import appleIcon from "../assets/appleIcon.png";
 import phoneIcon from "../assets/phoneIcon.png";
 import emailIcon from "../assets/emailIcon.png";
+import axios from "axios";
 
-const SignInModal = ({ setSignInModalOpen, setVRegModalOpen }) => {
+const SignInModal = ({ setVSignInModalOpen, setVRegModalOpen }) => {
   const [usePhone, setUsePhone] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   //toggle between phone and email button
   const handlePhoneToggle = () => {
     setUsePhone((prevUsePhone) => !usePhone);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setSignInModalOpen(false);
-    setVRegModalOpen(true);
+
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
+    try{
+      const response = await axios.post(
+        "/api/auth/vendor/login",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      const data = response.data;
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('vendorId', data.vendor.id);
+      setVSignInModalOpen(false);
+      setVRegModalOpen(false);
+    }
+    catch(err){
+      alert("Login failed");
+      console.warn(err)
+    }
+
   };
 
   return (
@@ -58,6 +84,8 @@ const SignInModal = ({ setSignInModalOpen, setVRegModalOpen }) => {
                     type="email"
                     placeholder="Enter your email Id"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div className="password-div">
@@ -67,6 +95,8 @@ const SignInModal = ({ setSignInModalOpen, setVRegModalOpen }) => {
                     type="password"
                     placeholder="Enter your password"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
               </>

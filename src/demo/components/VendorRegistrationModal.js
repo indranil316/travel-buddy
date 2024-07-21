@@ -78,6 +78,7 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     number: "",
     address: "",
     licenceName: "",
@@ -114,8 +115,8 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
 
   const validateStep = () => {
     if (current === 0) {
-      const { name, email, number, address } = formData;
-      if (!name || !email || !number || !address) {
+      const { name, email, password, number, address } = formData;
+      if (!name || !email || !number || !address || !password) {
         message.error("Please enter all details in Step 1.");
         return false;
       }
@@ -157,6 +158,7 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
       formDataToSend.append("email", formData.email);
+      formDataToSend.append("password", formData.password);
       formDataToSend.append("number", formData.number);
       formDataToSend.append("address", formData.address);
       formDataToSend.append("licenceName", formData.licenceName);
@@ -244,6 +246,17 @@ const VendorRegistrationModal = ({ isVisible, onClose }) => {
                 type="email"
                 placeholder="Enter your Email ID"
                 value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="input-div">
+              <label>Password</label>
+              <input
+                name="password"
+                type="password"
+                placeholder="Enter your Password"
+                value={formData.password}
                 onChange={handleChange}
                 required
               />
