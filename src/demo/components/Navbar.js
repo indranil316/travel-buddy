@@ -11,7 +11,7 @@ import VendorSignInModal from "./VendorSignInModal";
 import VendorRegistrationModal from "./VendorRegistrationModal";
 import "./Navbar.css";
 
-const Navbar = () => {
+const Navbar = ({validateLogin, isVendorLogin, logoutVendor}) => {
   //user sign In modal
   const [signInModalOpen, setSignInModalOpen] = useState(false);
 
@@ -71,17 +71,26 @@ const Navbar = () => {
         </Button>
       </div>
       <h1 className="title">TRAVEL BUDDY</h1>
-      <div className="nav-icons">
-        <Button type="text" onClick={() => setVRegModalOpen(true)}>
-          Register as Vendor
-        </Button>
-        <Dropdown overlay={menu} trigger={["click"]}>
-          <Button type="text" icon={<UserOutlined />} />
-        </Dropdown>
+      {
+        !isVendorLogin ? (
+          <div className="nav-icons">
+            <Button type="text" onClick={() => setVRegModalOpen(true)}>
+              Register as Vendor
+            </Button>
+            <Dropdown overlay={menu} trigger={["click"]}>
+              <Button type="text" icon={<UserOutlined />} />
+            </Dropdown>
 
-        <Button type="text" icon={<MenuOutlined />} />
-      </div>
-
+            <Button type="text" icon={<MenuOutlined />} />
+          </div>
+        ) : (
+          <div className="nav-icons">
+            <Button type="default" onClick={logoutVendor}>
+              Logout
+            </Button>
+          </div>
+        )
+      }
       {/* User Sign In Modal */}
       <Modal
         centered
@@ -124,6 +133,7 @@ const Navbar = () => {
         <VendorSignInModal
           setVSignInModalOpen={setVSignInModalOpen}
           setVRegModalOpen={setVRegModalOpen}
+          validateLogin = {validateLogin}
         />
       </Modal>
 

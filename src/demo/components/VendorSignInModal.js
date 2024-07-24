@@ -7,8 +7,9 @@ import appleIcon from "../assets/appleIcon.png";
 import phoneIcon from "../assets/phoneIcon.png";
 import emailIcon from "../assets/emailIcon.png";
 import axios from "axios";
+import { saveVendorLoginInfo } from '../utils';
 
-const SignInModal = ({ setVSignInModalOpen, setVRegModalOpen }) => {
+const SignInModal = ({ setVSignInModalOpen, setVRegModalOpen, validateLogin }) => {
   const [usePhone, setUsePhone] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +27,7 @@ const SignInModal = ({ setVSignInModalOpen, setVRegModalOpen }) => {
     formData.append("password", password);
     try{
       const response = await axios.post(
-        "/api/auth/vendor/login",
+        "/api/vendor/login",
         formData,
         {
           headers: {
@@ -35,10 +36,11 @@ const SignInModal = ({ setVSignInModalOpen, setVRegModalOpen }) => {
         }
       );
       const data = response.data;
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('vendorId', data.vendor.id);
+      alert("Login Success")
+      saveVendorLoginInfo(data.token, data.vendor.id)
       setVSignInModalOpen(false);
       setVRegModalOpen(false);
+      validateLogin();
     }
     catch(err){
       alert("Login failed");

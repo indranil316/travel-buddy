@@ -1,14 +1,16 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Button, Form, Input, Popconfirm, Table } from "antd";
+import { Button, Form, Input, Popconfirm, Table, message, Modal } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import { Menu } from "antd";
+import axios from "axios";
 import "./VendorServices.css";
+import { getToken, getVendorId } from "../../utils";
 
 //service types and subtypes
 const items = [
   {
     key: "service1",
-    label: "Accomodation",
+    label: "Accommodation",
     icon: <AppstoreOutlined />,
     children: [
       {
@@ -125,43 +127,110 @@ const EditableCell = ({
 };
 
 const VendorServices = () => {
-  const [dataSource, setDataSource] = useState([
-    {
-      key: "0",
-      name: "Hotel no 1",
-      stars: "5",
-      address: "Abcd efgh",
-    },
-    {
-      key: "1",
-      name: "Hotel no 2",
-      stars: "3",
-      address: "Mnop qrstuv",
-    },
-  ]);
+  const [dataSource, setDataSource] = useState([]);
   const [count, setCount] = useState(2);
-  const handleDelete = (key) => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
+
+  useEffect(()=>{
+    getServices()
+  },[])
+
+  const getServices = async () => {
+    try{
+      const data = (await (axios.get(`/api/vendor/service?vendorId=${getVendorId()}`, {
+        headers: {
+          "x-auth-token": getToken(),
+        }
+      }))).data;
+      setDataSource(data);
+    }
+    catch(err){
+      alert('coudnt fetch data');
+    }
+   
+  }
+
+  const handleDelete = async (key) => {
     const newData = dataSource.filter((item) => item.key !== key);
     setDataSource(newData);
   };
 
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    form.resetFields();
+  };
+
+  const handleAdd = async (values) => {
+    const newData = {
+      key: count,
+      name: values.name,
+      stars: values.stars,
+      address: values.address,
+      vendorId: getVendorId()
+    };
+
+    try {
+
+      const token = getToken()
+      await axios.post("/api/vendor/service", newData, {
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+      });
+
+      setDataSource([...dataSource, newData]);
+      setCount(count + 1);
+      message.success("Service added successfully!");
+      setIsModalVisible(false);
+      form.resetFields();
+      getServices()
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to add service.");
+    }
+  };
+
+  const handleSave = (row) => {
+    const newData = [...dataSource];
+    const index = newData.findIndex((item) => row.key === item.key);
+    const item = newData[index];
+    newData.splice(index, 1, {
+      ...item,
+      ...row,
+    });
+    setDataSource(newData);
+  };
+
+  const components = {
+    body: {
+      row: EditableRow,
+      cell: EditableCell,
+    },
+  };
+
   const defaultColumns = [
     {
-      title: "name",
+      title: "Name",
       dataIndex: "name",
       width: "30%",
       editable: true,
     },
     {
-      title: "stars",
-      dataIndex: "age",
+      title: "Stars",
+      dataIndex: "stars",
     },
     {
-      title: "address",
+      title: "Address",
       dataIndex: "address",
     },
     {
-      title: "operation",
+      title: "Operation",
       dataIndex: "operation",
       render: (_, record) =>
         dataSource.length >= 1 ? (
@@ -174,32 +243,7 @@ const VendorServices = () => {
         ) : null,
     },
   ];
-  const handleAdd = () => {
-    const newData = {
-      key: count,
-      name: `Edward King ${count}`,
-      age: "32",
-      address: `London, Park Lane no. ${count}`,
-    };
-    setDataSource([...dataSource, newData]);
-    setCount(count + 1);
-  };
-  const handleSave = (row) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => row.key === item.key);
-    const item = newData[index];
-    newData.splice(index, 1, {
-      ...item,
-      ...row,
-    });
-    setDataSource(newData);
-  };
-  const components = {
-    body: {
-      row: EditableRow,
-      cell: EditableCell,
-    },
-  };
+
   const columns = defaultColumns.map((col) => {
     if (!col.editable) {
       return col;
@@ -241,7 +285,7 @@ const VendorServices = () => {
         columns={columns}
       />
       <Button
-        onClick={handleAdd}
+        onClick={showModal}
         type="primary"
         style={{
           marginBottom: 16,
@@ -249,6 +293,71 @@ const VendorServices = () => {
       >
         Add new Service
       </Button>
+      <Modal
+        title="Add New Service"
+        visible={isModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={() => {
+              form
+                .validateFields()
+                .then((values) => {
+                  handleAdd(values);
+                })
+                .catch((info) => {
+                  console.log("Validate Failed:", info);
+                });
+            }}
+          >
+            Submit
+          </Button>,
+        ]}
+      >
+        <Form form={form} layout="vertical" name="add_service_form">
+          <Form.Item
+            name="name"
+            label="Service Name"
+            rules={[
+              {
+                required: true,
+                message: "Please input the name of the service!",
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="stars"
+            label="Stars"
+            rules={[
+              {
+                required: true,
+                message: "Please input the stars rating!",
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="address"
+            label="Address"
+            rules={[
+              {
+                required: true,
+                message: "Please input the address!",
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
